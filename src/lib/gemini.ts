@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 import { AnalyzeRequest, Nutrients } from '@/types/food';
 
 const FOOD_PROMPT = `Analyze this food and return ONLY valid JSON with no markdown formatting, no code blocks, no explanation:
@@ -37,7 +37,6 @@ function coerceNumber(val: unknown): number {
 }
 
 function parseResponse(raw: string): GeminiResult {
-  // Strip markdown code blocks if present
   const cleaned = raw.replace(/```(?:json)?\n?/g, '').trim();
   const parsed = JSON.parse(cleaned);
 
@@ -60,36 +59,52 @@ function parseResponse(raw: string): GeminiResult {
 }
 
 export async function analyzeFood(request: AnalyzeRequest): Promise<GeminiResult> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === 'your_key_here') {
-    throw new Error('GEMINI_API_KEY is not configured. Add your key to .env.local');
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    throw new Error('GROQ_API_KEY is not configured.');
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const groq = new Groq({ apiKey });
 
-  let result;
+  let raw: string;
 
   if (request.method === 'image' && request.imageBase64 && request.imageMime) {
-    result = await model.generateContent([
-      {
-        inlineData: {
-          data: request.imageBase64,
-          mimeType: request.imageMime,
+    const response = await groq.chat.completions.create({
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:${request.imageMime};base64,${request.imageBase64}`,
+              },
+            },
+            { type: 'text', text: FOOD_PROMPT },
+          ],
         },
-      },
-      FOOD_PROMPT,
-    ]);
+      ],
+      max_tokens: 512,
+    });
+    raw = response.choices[0]?.message?.content || '';
   } else {
     const text = request.text || '';
     if (!text.trim()) {
       throw new Error('No food description provided');
     }
-    result = await model.generateContent(
-      `${FOOD_PROMPT}\n\nFood description: "${text}"`
-    );
+    const response = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'user',
+          content: `${FOOD_PROMPT}\n\nFood description: "${text}"`,
+        },
+      ],
+      max_tokens: 512,
+    });
+    raw = response.choices[0]?.message?.content || '';
   }
 
-  const raw = result.response.text();
   return parseResponse(raw);
 }
