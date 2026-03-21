@@ -18,13 +18,13 @@ const GOAL_FIELDS: { key: keyof DailyGoals; label: string; unit: string; color: 
 ];
 
 export default function SettingsPage() {
-  const { user } = useUser();
+  const { userId } = useUser();
   const [goals, setGoals] = useState<DailyGoals>(DEFAULT_GOALS);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (user) setGoals(getGoals(user.id));
-  }, [user]);
+    if (userId) setGoals(getGoals(userId));
+  }, [userId]);
 
   const handleChange = (key: keyof DailyGoals, value: string) => {
     setGoals((prev) => ({ ...prev, [key]: parseFloat(value) || 0 }));
@@ -32,23 +32,23 @@ export default function SettingsPage() {
   };
 
   const handleSave = () => {
-    if (!user) return;
-    saveGoals(user.id, goals);
+    if (!userId) return;
+    saveGoals(userId, goals);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
   const handleReset = () => {
-    if (!user) return;
+    if (!userId) return;
     setGoals(DEFAULT_GOALS);
-    saveGoals(user.id, DEFAULT_GOALS);
+    saveGoals(userId, DEFAULT_GOALS);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
   return (
     <main className="max-w-md mx-auto px-4 pt-6 pb-24">
-      <PageHeader title="Daily Goals" subtitle={user ? `Goals for ${user.name}` : 'Set your nutrition targets'} backHref="/" />
+      <PageHeader title="Daily Goals" subtitle="Set your nutrition targets" backHref="/" />
 
       <Card className="space-y-4">
         <p className="text-sm text-gray-500">

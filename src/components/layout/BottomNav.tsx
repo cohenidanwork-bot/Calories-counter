@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import Image from 'next/image';
 import clsx from 'clsx';
 import { useUser } from '@/context/UserContext';
-import { getInitials } from '@/lib/users';
 
 const NAV_LINKS = [
   {
@@ -47,24 +47,18 @@ const NAV_LINKS = [
   },
 ];
 
-function ProfileSwitcherSheet({ onClose }: { onClose: () => void }) {
-  const { user, allUsers, login, logout, register } = useUser();
-  const [creatingNew, setCreatingNew] = useState(false);
-  const [newName, setNewName] = useState('');
+function ProfileSheet({ onClose }: { onClose: () => void }) {
+  const { userName, userImage, userId, logout } = useUser();
 
-  const handleCreate = () => {
-    if (!newName.trim()) return;
-    register(newName.trim());
-    setCreatingNew(false);
-    setNewName('');
-    onClose();
-  };
+  const initials = userName
+    ? userName.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
+    : '?';
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center" onClick={onClose}>
       <div className="bg-white rounded-t-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">Switch Profile</h2>
+          <h2 className="font-semibold text-gray-900">Account</h2>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -72,51 +66,28 @@ function ProfileSwitcherSheet({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <div className="p-4 space-y-2 max-h-72 overflow-y-auto">
-          {allUsers.map((u) => (
-            <button
-              key={u.id}
-              onClick={() => { login(u.id); onClose(); }}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
-                u.id === user?.id ? 'bg-green-50 border border-green-200' : 'hover:bg-gray-50 border border-transparent'
-              }`}
-            >
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-xs shrink-0" style={{ backgroundColor: u.color }}>
-                {getInitials(u.name)}
+        <div className="p-4">
+          <div className="flex items-center gap-4 bg-gray-50 rounded-xl p-4 mb-4">
+            {userImage ? (
+              <Image src={userImage} alt={userName ?? ''} width={48} height={48} className="w-12 h-12 rounded-full" />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-white font-bold">
+                {initials}
               </div>
-              <span className="flex-1 text-left text-sm font-medium text-gray-900">{u.name}</span>
-              {u.id === user?.id && (
-                <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20.285 2l-11.285 11.567-5.286-5.011-3.714 3.716 9 8.728 15-15.285z" />
-                </svg>
-              )}
-            </button>
-          ))}
-        </div>
-
-        <div className="px-4 pb-4 pt-2 border-t border-gray-100 space-y-2">
-          {creatingNew ? (
-            <div className="flex gap-2">
-              <input
-                className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="New profile name"
-                autoFocus
-                onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-              />
-              <button onClick={handleCreate} disabled={!newName.trim()} className="px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium disabled:opacity-40">Add</button>
-              <button onClick={() => setCreatingNew(false)} className="px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-500">Cancel</button>
+            )}
+            <div>
+              <p className="font-semibold text-gray-900">{userName}</p>
+              <p className="text-xs text-gray-400 mt-0.5">Signed in with Google</p>
             </div>
-          ) : (
-            <button onClick={() => setCreatingNew(true)} className="w-full py-2.5 rounded-xl border border-dashed border-gray-200 text-sm font-medium text-gray-400 hover:border-green-400 hover:text-green-500 transition-colors">
-              + Add new profile
-            </button>
-          )}
+          </div>
+
           <button
-            onClick={() => { logout(); onClose(); }}
-            className="w-full py-2.5 rounded-xl text-sm font-medium text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+            onClick={async () => { onClose(); await logout(); }}
+            className="w-full py-3 rounded-xl border border-red-100 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
           >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
             Sign out
           </button>
         </div>
@@ -127,8 +98,12 @@ function ProfileSwitcherSheet({ onClose }: { onClose: () => void }) {
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { user } = useUser();
-  const [showSwitcher, setShowSwitcher] = useState(false);
+  const { userName, userImage } = useUser();
+  const [showProfile, setShowProfile] = useState(false);
+
+  const initials = userName
+    ? userName.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
+    : '?';
 
   return (
     <>
@@ -151,29 +126,24 @@ export function BottomNav() {
             );
           })}
 
-          {/* User avatar / profile switcher */}
+          {/* Profile button */}
           <button
-            onClick={() => setShowSwitcher(true)}
+            onClick={() => setShowProfile(true)}
             className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5"
           >
-            {user ? (
-              <div
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-xs"
-                style={{ backgroundColor: user.color }}
-              >
-                {getInitials(user.name)}
-              </div>
+            {userImage ? (
+              <Image src={userImage} alt={userName ?? ''} width={28} height={28} className="w-7 h-7 rounded-full" />
             ) : (
-              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
+              <div className="w-7 h-7 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-xs">
+                {initials}
+              </div>
             )}
-            <span className="text-xs font-medium text-gray-400">Profile</span>
+            <span className="text-xs font-medium text-gray-400">Me</span>
           </button>
         </div>
       </nav>
 
-      {showSwitcher && <ProfileSwitcherSheet onClose={() => setShowSwitcher(false)} />}
+      {showProfile && <ProfileSheet onClose={() => setShowProfile(false)} />}
     </>
   );
 }

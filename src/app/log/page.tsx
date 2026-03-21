@@ -23,8 +23,8 @@ function getMealTypeForTime(): MealType {
 
 export default function LogPage() {
   const router = useRouter();
-  const { user } = useUser();
-  const { addEntry } = useFoodLog(user?.id ?? '');
+  const { userId } = useUser();
+  const { addEntry } = useFoodLog(userId ?? '');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [mealType, setMealType] = useState<MealType>(getMealTypeForTime());
@@ -32,7 +32,7 @@ export default function LogPage() {
   const [unit, setUnit] = useState<AmountUnit>('g');
   const [showRecipes, setShowRecipes] = useState(false);
 
-  const recipes: Recipe[] = user ? getRecipes(user.id) : [];
+  const recipes: Recipe[] = userId ? getRecipes(userId) : [];
 
   const analyze = async (req: AnalyzeRequest) => {
     setLoading(true);
@@ -78,13 +78,10 @@ export default function LogPage() {
     router.push('/');
   };
 
-  const handleReset = () => setResult(null);
-
   return (
     <main className="max-w-md mx-auto px-4 pt-6 pb-24">
       <PageHeader title="Log Food" subtitle="What did you eat?" backHref="/" />
 
-      {/* Meal Type Selector */}
       <div className="mb-4">
         <p className="text-xs font-medium text-gray-500 mb-2">Meal</p>
         <div className="grid grid-cols-4 gap-2">
@@ -93,9 +90,7 @@ export default function LogPage() {
               key={mt.value}
               onClick={() => setMealType(mt.value)}
               className={`flex flex-col items-center py-2.5 rounded-xl border text-xs font-medium transition-colors ${
-                mealType === mt.value
-                  ? 'border-green-500 bg-green-50 text-green-700'
-                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                mealType === mt.value ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
               }`}
             >
               <span className="text-lg mb-0.5">{mt.emoji}</span>
@@ -105,57 +100,32 @@ export default function LogPage() {
         </div>
       </div>
 
-      {/* Amount + Unit */}
       <div className="flex gap-2 mb-4">
         <div className="flex-1">
           <p className="text-xs font-medium text-gray-500 mb-1">Amount (optional)</p>
-          <input
-            type="number"
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="e.g. 200"
-          />
+          <input type="number" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="e.g. 200" />
         </div>
         <div className="w-28">
           <p className="text-xs font-medium text-gray-500 mb-1">Unit</p>
-          <select
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-            value={unit}
-            onChange={(e) => setUnit(e.target.value as AmountUnit)}
-          >
-            {AMOUNT_UNITS.map((u) => (
-              <option key={u} value={u}>{u}</option>
-            ))}
+          <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" value={unit} onChange={(e) => setUnit(e.target.value as AmountUnit)}>
+            {AMOUNT_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
           </select>
         </div>
       </div>
 
-      {/* Quick Recipes */}
       {recipes.length > 0 && !result && (
         <div className="mb-4">
-          <button
-            onClick={() => setShowRecipes(!showRecipes)}
-            className="w-full flex items-center justify-between px-4 py-3 bg-purple-50 border border-purple-100 rounded-xl text-sm font-medium text-purple-700"
-          >
+          <button onClick={() => setShowRecipes(!showRecipes)} className="w-full flex items-center justify-between px-4 py-3 bg-purple-50 border border-purple-100 rounded-xl text-sm font-medium text-purple-700">
             <div className="flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
               My Recipes ({recipes.length})
             </div>
-            <svg className={`w-4 h-4 transition-transform ${showRecipes ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
+            <svg className={`w-4 h-4 transition-transform ${showRecipes ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
           </button>
           {showRecipes && (
             <div className="mt-2 space-y-2">
               {recipes.map((recipe) => (
-                <button
-                  key={recipe.id}
-                  onClick={() => handleRecipeAdd(recipe)}
-                  className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl hover:border-purple-300 hover:bg-purple-50 transition-colors"
-                >
+                <button key={recipe.id} onClick={() => handleRecipeAdd(recipe)} className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl hover:border-purple-300 hover:bg-purple-50 transition-colors">
                   <div className="text-left">
                     <p className="text-sm font-medium text-gray-900">{recipe.name}</p>
                     <p className="text-xs text-gray-400">{recipe.description}</p>
@@ -172,23 +142,14 @@ export default function LogPage() {
       )}
 
       {result ? (
-        <NutrientPreview result={result} onConfirm={handleConfirm} onReset={handleReset} />
+        <NutrientPreview result={result} onConfirm={handleConfirm} onReset={() => setResult(null)} />
       ) : (
         <LoggingTabs>
           {(tab) => (
             <>
-              {tab === 'text' && (
-                <TextInput loading={loading} onSubmit={(text) => analyze({ method: 'text', text })} />
-              )}
-              {tab === 'image' && (
-                <ImageUploader
-                  loading={loading}
-                  onSubmit={(imageBase64, imageMime) => analyze({ method: 'image', imageBase64, imageMime })}
-                />
-              )}
-              {tab === 'voice' && (
-                <VoiceRecorder loading={loading} onSubmit={(text) => analyze({ method: 'voice', text })} />
-              )}
+              {tab === 'text' && <TextInput loading={loading} onSubmit={(text) => analyze({ method: 'text', text })} />}
+              {tab === 'image' && <ImageUploader loading={loading} onSubmit={(imageBase64, imageMime) => analyze({ method: 'image', imageBase64, imageMime })} />}
+              {tab === 'voice' && <VoiceRecorder loading={loading} onSubmit={(text) => analyze({ method: 'voice', text })} />}
             </>
           )}
         </LoggingTabs>

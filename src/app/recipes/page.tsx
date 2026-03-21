@@ -187,26 +187,26 @@ function ImageForm({ onSave }: { onSave: (r: Recipe) => void }) {
 }
 
 export default function RecipesPage() {
-  const { user } = useUser();
+  const { userId } = useUser();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [tab, setTab] = useState<Tab>('list');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user) setRecipes(getRecipes(user.id));
-  }, [user]);
+    if (userId) setRecipes(getRecipes(userId));
+  }, [userId]);
 
   const handleSave = (recipe: Recipe) => {
-    if (!user) return;
-    saveRecipe(user.id, recipe);
-    setRecipes(getRecipes(user.id));
+    if (!userId) return;
+    saveRecipe(userId, recipe);
+    setRecipes(getRecipes(userId));
     setTab('list');
   };
 
   const handleDelete = (id: string) => {
-    if (!user) return;
-    deleteRecipe(user.id, id);
-    setRecipes(getRecipes(user.id));
+    if (!userId) return;
+    deleteRecipe(userId, id);
+    setRecipes(getRecipes(userId));
     setConfirmDelete(null);
   };
 
@@ -219,7 +219,7 @@ export default function RecipesPage() {
 
   return (
     <main className="max-w-md mx-auto px-4 pt-6 pb-24">
-      <PageHeader title="Recipes" subtitle={user ? `${user.name}'s recipes` : 'Save your favourite meals'} backHref="/" />
+      <PageHeader title="Recipes" subtitle="Save your favourite meals" backHref="/" />
 
       <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-4">
         {tabs.map((t) => (
