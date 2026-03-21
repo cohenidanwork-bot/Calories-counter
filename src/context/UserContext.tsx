@@ -1,30 +1,22 @@
 'use client';
 
 import { createContext, useContext, ReactNode } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+
+const LOCAL_USER_ID = 'local';
 
 interface UserContextValue {
-  userId: string | null;
-  userName: string | null;
-  userImage: string | null;
+  userId: string;
   isLoading: boolean;
-  logout: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextValue | null>(null);
 
 export function UserProvider({ children }: { children: ReactNode }) {
-  const { data: session, status } = useSession();
-
-  const value: UserContextValue = {
-    userId: session?.user?.id ?? null,
-    userName: session?.user?.name ?? null,
-    userImage: session?.user?.image ?? null,
-    isLoading: status === 'loading',
-    logout: () => signOut({ callbackUrl: '/' }),
-  };
-
-  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
+  return (
+    <UserContext.Provider value={{ userId: LOCAL_USER_ID, isLoading: false }}>
+      {children}
+    </UserContext.Provider>
+  );
 }
 
 export function useUser() {

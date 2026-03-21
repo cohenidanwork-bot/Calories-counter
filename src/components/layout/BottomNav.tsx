@@ -2,10 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
-import Image from 'next/image';
 import clsx from 'clsx';
-import { useUser } from '@/context/UserContext';
 
 const NAV_LINKS = [
   {
@@ -47,103 +44,29 @@ const NAV_LINKS = [
   },
 ];
 
-function ProfileSheet({ onClose }: { onClose: () => void }) {
-  const { userName, userImage, userId, logout } = useUser();
-
-  const initials = userName
-    ? userName.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
-    : '?';
-
-  return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center" onClick={onClose}>
-      <div className="bg-white rounded-t-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">Account</h2>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="p-4">
-          <div className="flex items-center gap-4 bg-gray-50 rounded-xl p-4 mb-4">
-            {userImage ? (
-              <Image src={userImage} alt={userName ?? ''} width={48} height={48} className="w-12 h-12 rounded-full" />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-white font-bold">
-                {initials}
-              </div>
-            )}
-            <div>
-              <p className="font-semibold text-gray-900">{userName}</p>
-              <p className="text-xs text-gray-400 mt-0.5">Signed in with Google</p>
-            </div>
-          </div>
-
-          <button
-            onClick={async () => { onClose(); await logout(); }}
-            className="w-full py-3 rounded-xl border border-red-100 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            Sign out
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function BottomNav() {
   const pathname = usePathname();
-  const { userName, userImage } = useUser();
-  const [showProfile, setShowProfile] = useState(false);
-
-  const initials = userName
-    ? userName.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
-    : '?';
 
   return (
-    <>
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
-        <div className="max-w-md mx-auto flex items-center">
-          {NAV_LINKS.map((link) => {
-            const active = pathname === link.href;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={clsx(
-                  'flex-1 flex flex-col items-center justify-center py-3 gap-0.5 transition-colors',
-                  active ? 'text-green-600' : 'text-gray-400 hover:text-gray-600'
-                )}
-              >
-                {link.icon(active)}
-                <span className="text-xs font-medium">{link.label}</span>
-              </Link>
-            );
-          })}
-
-          {/* Profile button */}
-          <button
-            onClick={() => setShowProfile(true)}
-            className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5"
-          >
-            {userImage ? (
-              <Image src={userImage} alt={userName ?? ''} width={28} height={28} className="w-7 h-7 rounded-full" />
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-xs">
-                {initials}
-              </div>
-            )}
-            <span className="text-xs font-medium text-gray-400">Me</span>
-          </button>
-        </div>
-      </nav>
-
-      {showProfile && <ProfileSheet onClose={() => setShowProfile(false)} />}
-    </>
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
+      <div className="max-w-md mx-auto flex items-center">
+        {NAV_LINKS.map((link) => {
+          const active = pathname === link.href;
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={clsx(
+                'flex-1 flex flex-col items-center justify-center py-3 gap-0.5 transition-colors',
+                active ? 'text-green-600' : 'text-gray-400 hover:text-gray-600'
+              )}
+            >
+              {link.icon(active)}
+              <span className="text-xs font-medium">{link.label}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
   );
 }
