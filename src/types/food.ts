@@ -8,7 +8,11 @@ export interface Nutrients {
   sodium: number;   // mg
 }
 
-export type InputMethod = 'image' | 'text' | 'voice';
+export type InputMethod = 'image' | 'text' | 'voice' | 'recipe' | 'manual';
+
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+export type AmountUnit = 'g' | 'kg' | 'ml' | 'l' | 'oz' | 'cup' | 'tbsp' | 'tsp' | 'piece' | 'serving';
 
 export interface FoodEntry {
   id: string;
@@ -17,6 +21,9 @@ export interface FoodEntry {
   name: string;
   description: string;
   inputMethod: InputMethod;
+  mealType: MealType;
+  amount?: number;
+  unit?: AmountUnit;
   nutrients: Nutrients;
   confidence: 'high' | 'medium' | 'low';
 }
@@ -41,6 +48,16 @@ export const DEFAULT_GOALS: DailyGoals = {
   sodium: 2300,
 };
 
+export interface Recipe {
+  id: string;
+  name: string;
+  description: string;
+  nutrients: Nutrients;
+  amount?: number;
+  unit?: AmountUnit;
+  createdAt: number;
+}
+
 export interface AnalyzeRequest {
   method: InputMethod;
   text?: string;
@@ -50,6 +67,15 @@ export interface AnalyzeRequest {
 
 export interface AnalyzeResponse {
   success: boolean;
-  entry?: Omit<FoodEntry, 'id' | 'date' | 'timestamp'>;
+  entry?: Omit<FoodEntry, 'id' | 'date' | 'timestamp' | 'mealType'>;
   error?: string;
 }
+
+export const MEAL_TYPES: { value: MealType; label: string; emoji: string }[] = [
+  { value: 'breakfast', label: 'Breakfast', emoji: '🌅' },
+  { value: 'lunch', label: 'Lunch', emoji: '☀️' },
+  { value: 'dinner', label: 'Dinner', emoji: '🌙' },
+  { value: 'snack', label: 'Snack', emoji: '🍎' },
+];
+
+export const AMOUNT_UNITS: AmountUnit[] = ['g', 'kg', 'ml', 'l', 'oz', 'cup', 'tbsp', 'tsp', 'piece', 'serving'];

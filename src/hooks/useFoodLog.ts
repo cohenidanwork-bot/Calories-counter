@@ -1,40 +1,53 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { FoodEntry } from '@/types/food';
+import { FoodEntry, MealType } from '@/types/food';
 import {
   getEntriesForDate,
   saveEntry,
+  updateEntry,
   deleteEntry,
   getTodayString,
 } from '@/lib/storage';
 
-export function useFoodLog() {
-  const today = getTodayString();
-  const [entries, setEntries] = useState<FoodEntry[]>(() => getEntriesForDate(today));
+export function useFoodLog(date?: string) {
+  const targetDate = date || getTodayString();
+  const [entries, setEntries] = useState<FoodEntry[]>(() => getEntriesForDate(targetDate));
+
+  const refresh = useCallback(() => {
+    setEntries(getEntriesForDate(targetDate));
+  }, [targetDate]);
 
   const addEntry = useCallback(
-    (partial: Omit<FoodEntry, 'id' | 'date' | 'timestamp'>): FoodEntry => {
+    (partial: Omit<FoodEntry, 'id' | 'date' | 'timestamp'> & { mealType: MealType }): FoodEntry => {
       const entry: FoodEntry = {
         ...partial,
         id: crypto.randomUUID(),
-        date: today,
+        date: targetDate,
         timestamp: Date.now(),
       };
       saveEntry(entry);
-      setEntries(getEntriesForDate(today));
+      setEntries(getEntriesForDate(targetDate));
       return entry;
     },
-    [today]
+    [targetDate]
+  );
+
+  const editEntry = useCallback(
+    (updated: FoodEntry) => {
+      updateEntry(updated);
+      setEntries(getEntriesForDate(updated.date));
+    },
+    []
   );
 
   const removeEntry = useCallback(
     (id: string) => {
-      deleteEntry(id, today);
-      setEntries(getEntriesForDate(today));
+      deleteEntry(id, targetDate);
+      setEntries(getEntriesForDate(targetDate));
     },
-    [today]
+    [targetDate]
   );
 
-  return { entries, addEntry, removeEntry };
+  return { entries, addEntry, editEntry, removeEntry, refresh };
 }

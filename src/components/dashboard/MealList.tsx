@@ -1,15 +1,18 @@
 'use client';
 
-import { FoodEntry } from '@/types/food';
+import { FoodEntry, MealType, MEAL_TYPES } from '@/types/food';
 import { MealItem } from './MealItem';
 import { Card } from '@/components/ui/Card';
 
 interface MealListProps {
   entries: FoodEntry[];
   onDelete: (id: string) => void;
+  onEdit: (updated: FoodEntry) => void;
 }
 
-export function MealList({ entries, onDelete }: MealListProps) {
+const MEAL_ORDER: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
+
+export function MealList({ entries, onDelete, onEdit }: MealListProps) {
   if (entries.length === 0) {
     return (
       <Card className="text-center py-10">
@@ -22,16 +25,45 @@ export function MealList({ entries, onDelete }: MealListProps) {
     );
   }
 
+  // Group entries by mealType
+  const grouped: Record<MealType, FoodEntry[]> = {
+    breakfast: [],
+    lunch: [],
+    dinner: [],
+    snack: [],
+  };
+
+  for (const entry of entries) {
+    const mt = entry.mealType || 'snack';
+    grouped[mt].push(entry);
+  }
+
+  const visibleGroups = MEAL_ORDER.filter((mt) => grouped[mt].length > 0);
+
   return (
-    <Card padding={false} className="overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100">
-        <h2 className="font-semibold text-gray-700 text-sm">Today&apos;s Meals</h2>
-      </div>
-      <div className="px-4">
-        {[...entries].reverse().map((entry) => (
-          <MealItem key={entry.id} entry={entry} onDelete={onDelete} />
-        ))}
-      </div>
-    </Card>
+    <div className="space-y-3">
+      {visibleGroups.map((mt) => {
+        const config = MEAL_TYPES.find((m) => m.value === mt)!;
+        const groupEntries = [...grouped[mt]].sort((a, b) => a.timestamp - b.timestamp);
+        const groupCalories = groupEntries.reduce((sum, e) => sum + e.nutrients.calories, 0);
+
+        return (
+          <Card key={mt} padding={false} className="overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-base">{config.emoji}</span>
+                <h2 className="font-semibold text-gray-700 text-sm">{config.label}</h2>
+              </div>
+              <span className="text-xs text-gray-400 font-medium">{Math.round(groupCalories)} kcal</span>
+            </div>
+            <div className="px-4">
+              {groupEntries.map((entry) => (
+                <MealItem key={entry.id} entry={entry} onDelete={onDelete} onEdit={onEdit} />
+              ))}
+            </div>
+          </Card>
+        );
+      })}
+    </div>
   );
 }
