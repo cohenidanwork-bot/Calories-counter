@@ -65,7 +65,7 @@ function SignInScreen() {
 
         {/* Sign in button */}
         <button
-          onClick={() => signIn('google')}
+          onClick={() => signIn('google', { callbackUrl: '/' })}
           className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 rounded-2xl px-6 py-4 shadow-sm hover:shadow-md hover:border-gray-300 transition-all font-medium text-gray-700 text-sm"
         >
           {/* Google logo */}
@@ -80,6 +80,13 @@ function SignInScreen() {
 
         <p className="text-center text-xs text-gray-300 mt-6">
           Your data is stored locally on this device
+        </p>
+        <p className="text-center text-xs text-gray-300 mt-1">
+          If you see a server error, add{' '}
+          <span className="font-mono">GOOGLE_CLIENT_ID</span>,{' '}
+          <span className="font-mono">GOOGLE_CLIENT_SECRET</span> &amp;{' '}
+          <span className="font-mono">NEXTAUTH_SECRET</span>{' '}
+          to your environment variables.
         </p>
       </div>
     </div>
