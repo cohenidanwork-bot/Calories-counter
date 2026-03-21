@@ -44,12 +44,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     console.error('[analyze-food]', message);
 
     const isQuotaError = message.includes('429') || message.toLowerCase().includes('quota') || message.toLowerCase().includes('too many requests');
-    const userMessage = isQuotaError
-      ? 'The AI service is temporarily busy. Please wait a moment and try again.'
-      : 'Could not analyze the food. Please try again.';
 
     return NextResponse.json(
-      { success: false, error: userMessage },
+      { success: false, error: message },
       { status: isQuotaError ? 429 : 500 }
     );
   }
