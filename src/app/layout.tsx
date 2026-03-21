@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { BottomNav } from '@/components/layout/BottomNav';
+import { ClientLayout } from '@/components/layout/ClientLayout';
 
 export const metadata: Metadata = {
   title: 'Calories Counter',
@@ -12,9 +12,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
         <div className="min-h-screen bg-gray-50">
-          {children}
+          <ClientLayout>
+            {children}
+          </ClientLayout>
         </div>
-        <BottomNav />
       </body>
     </html>
   );

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { DailyGoals, DEFAULT_GOALS } from '@/types/food';
 import { getGoals, saveGoals } from '@/lib/storage';
+import { useUser } from '@/context/UserContext';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
 
@@ -17,12 +18,13 @@ const GOAL_FIELDS: { key: keyof DailyGoals; label: string; unit: string; color: 
 ];
 
 export default function SettingsPage() {
+  const { user } = useUser();
   const [goals, setGoals] = useState<DailyGoals>(DEFAULT_GOALS);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setGoals(getGoals());
-  }, []);
+    if (user) setGoals(getGoals(user.id));
+  }, [user]);
 
   const handleChange = (key: keyof DailyGoals, value: string) => {
     setGoals((prev) => ({ ...prev, [key]: parseFloat(value) || 0 }));
@@ -30,25 +32,27 @@ export default function SettingsPage() {
   };
 
   const handleSave = () => {
-    saveGoals(goals);
+    if (!user) return;
+    saveGoals(user.id, goals);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
   const handleReset = () => {
+    if (!user) return;
     setGoals(DEFAULT_GOALS);
-    saveGoals(DEFAULT_GOALS);
+    saveGoals(user.id, DEFAULT_GOALS);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
   return (
     <main className="max-w-md mx-auto px-4 pt-6 pb-24">
-      <PageHeader title="Daily Goals" subtitle="Set your nutrition targets" backHref="/" />
+      <PageHeader title="Daily Goals" subtitle={user ? `Goals for ${user.name}` : 'Set your nutrition targets'} backHref="/" />
 
       <Card className="space-y-4">
         <p className="text-sm text-gray-500">
-          Customize your daily nutrition goals. These will be used to track your progress each day.
+          Customize your daily nutrition goals. These are saved per user.
         </p>
 
         <div className="space-y-3">
@@ -58,18 +62,13 @@ export default function SettingsPage() {
                 <label className="text-sm font-medium text-gray-700">{label}</label>
                 <p className="text-xs text-gray-400">{unit}</p>
               </div>
-              <div className="relative w-32">
-                <input
-                  type="number"
-                  min="0"
-                  className={`w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold text-right ${color} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                  value={goals[key] || ''}
-                  onChange={(e) => handleChange(key, e.target.value)}
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">
-                  {/* unit shown in label */}
-                </span>
-              </div>
+              <input
+                type="number"
+                min="0"
+                className={`w-28 border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold text-right ${color} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                value={goals[key] || ''}
+                onChange={(e) => handleChange(key, e.target.value)}
+              />
               <span className="text-xs text-gray-400 w-8">{unit}</span>
             </div>
           ))}
@@ -80,7 +79,7 @@ export default function SettingsPage() {
             onClick={handleReset}
             className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
           >
-            Reset to defaults
+            Reset defaults
           </button>
           <button
             onClick={handleSave}

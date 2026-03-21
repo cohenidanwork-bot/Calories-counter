@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AnalyzeRequest, AnalyzeResponse, MealType, MEAL_TYPES, AmountUnit, AMOUNT_UNITS, Recipe } from '@/types/food';
 import { useFoodLog } from '@/hooks/useFoodLog';
 import { getRecipes } from '@/lib/storage';
+import { useUser } from '@/context/UserContext';
 import { LoggingTabs } from '@/components/logging/LoggingTabs';
 import { TextInput } from '@/components/logging/TextInput';
 import { ImageUploader } from '@/components/logging/ImageUploader';
@@ -22,14 +23,16 @@ function getMealTypeForTime(): MealType {
 
 export default function LogPage() {
   const router = useRouter();
-  const { addEntry } = useFoodLog();
+  const { user } = useUser();
+  const { addEntry } = useFoodLog(user?.id ?? '');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [mealType, setMealType] = useState<MealType>(getMealTypeForTime());
   const [amount, setAmount] = useState('');
   const [unit, setUnit] = useState<AmountUnit>('g');
   const [showRecipes, setShowRecipes] = useState(false);
-  const recipes = getRecipes();
+
+  const recipes: Recipe[] = user ? getRecipes(user.id) : [];
 
   const analyze = async (req: AnalyzeRequest) => {
     setLoading(true);
@@ -175,24 +178,16 @@ export default function LogPage() {
           {(tab) => (
             <>
               {tab === 'text' && (
-                <TextInput
-                  loading={loading}
-                  onSubmit={(text) => analyze({ method: 'text', text })}
-                />
+                <TextInput loading={loading} onSubmit={(text) => analyze({ method: 'text', text })} />
               )}
               {tab === 'image' && (
                 <ImageUploader
                   loading={loading}
-                  onSubmit={(imageBase64, imageMime) =>
-                    analyze({ method: 'image', imageBase64, imageMime })
-                  }
+                  onSubmit={(imageBase64, imageMime) => analyze({ method: 'image', imageBase64, imageMime })}
                 />
               )}
               {tab === 'voice' && (
-                <VoiceRecorder
-                  loading={loading}
-                  onSubmit={(text) => analyze({ method: 'voice', text })}
-                />
+                <VoiceRecorder loading={loading} onSubmit={(text) => analyze({ method: 'voice', text })} />
               )}
             </>
           )}
