@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { FoodEntry, MealType } from '@/types/food';
 import {
   getEntriesForDate,
@@ -16,8 +16,8 @@ export function useFoodLog(userId: string, date?: string) {
     userId ? getEntriesForDate(userId, targetDate) : []
   );
 
-  const refresh = useCallback(() => {
-    if (userId) setEntries(getEntriesForDate(userId, targetDate));
+  useEffect(() => {
+    setEntries(userId ? getEntriesForDate(userId, targetDate) : []);
   }, [userId, targetDate]);
 
   const addEntry = useCallback(
@@ -51,5 +51,5 @@ export function useFoodLog(userId: string, date?: string) {
     [userId, targetDate]
   );
 
-  return { entries, addEntry, editEntry, removeEntry, refresh };
+  return { entries, addEntry, editEntry, removeEntry };
 }
