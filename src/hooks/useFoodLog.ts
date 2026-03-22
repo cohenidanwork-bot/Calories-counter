@@ -20,6 +20,9 @@ export function useFoodLog(userId: string, date?: string) {
     setEntries(userId ? getEntriesForDate(userId, targetDate) : []);
   }, [userId, targetDate]);
 
+  const calcCalories = (n: FoodEntry['nutrients']) =>
+    Math.round(n.protein * 4 + n.carbs * 4 + n.fat * 9);
+
   const addEntry = useCallback(
     (partial: Omit<FoodEntry, 'id' | 'date' | 'timestamp'> & { mealType: MealType }): FoodEntry => {
       const entry: FoodEntry = {
@@ -27,6 +30,10 @@ export function useFoodLog(userId: string, date?: string) {
         id: crypto.randomUUID(),
         date: targetDate,
         timestamp: Date.now(),
+        nutrients: {
+          ...partial.nutrients,
+          calories: calcCalories(partial.nutrients),
+        },
       };
       saveEntry(userId, entry);
       setEntries(getEntriesForDate(userId, targetDate));
@@ -37,8 +44,15 @@ export function useFoodLog(userId: string, date?: string) {
 
   const editEntry = useCallback(
     (updated: FoodEntry) => {
-      updateEntry(userId, updated);
-      setEntries(getEntriesForDate(userId, updated.date));
+      const fixed: FoodEntry = {
+        ...updated,
+        nutrients: {
+          ...updated.nutrients,
+          calories: calcCalories(updated.nutrients),
+        },
+      };
+      updateEntry(userId, fixed);
+      setEntries(getEntriesForDate(userId, fixed.date));
     },
     [userId]
   );

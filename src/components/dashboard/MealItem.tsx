@@ -55,10 +55,10 @@ function EditModal({ entry, onSave, onClose }: EditModalProps) {
   const [mealType, setMealType] = useState<MealType>(entry.mealType || 'snack');
   const [amount, setAmount] = useState(entry.amount?.toString() || '');
   const [unit, setUnit] = useState<AmountUnit>(entry.unit || 'g');
-  const [calories, setCalories] = useState(entry.nutrients.calories.toString());
   const [protein, setProtein] = useState(entry.nutrients.protein.toString());
   const [carbs, setCarbs] = useState(entry.nutrients.carbs.toString());
   const [fat, setFat] = useState(entry.nutrients.fat.toString());
+  const calories = Math.round((parseFloat(protein) || 0) * 4 + (parseFloat(carbs) || 0) * 4 + (parseFloat(fat) || 0) * 9);
   const [fiber, setFiber] = useState(entry.nutrients.fiber.toString());
   const [sugar, setSugar] = useState(entry.nutrients.sugar.toString());
   const [sodium, setSodium] = useState(entry.nutrients.sodium.toString());
@@ -72,7 +72,7 @@ function EditModal({ entry, onSave, onClose }: EditModalProps) {
       amount: amount ? parseFloat(amount) : undefined,
       unit: amount ? unit : undefined,
       nutrients: {
-        calories: parseFloat(calories) || 0,
+        calories,
         protein: parseFloat(protein) || 0,
         carbs: parseFloat(carbs) || 0,
         fat: parseFloat(fat) || 0,
@@ -170,8 +170,11 @@ function EditModal({ entry, onSave, onClose }: EditModalProps) {
           <div>
             <label className="text-xs font-medium text-gray-500 mb-2 block">Nutrition</label>
             <div className="grid grid-cols-2 gap-2">
+              <div className="col-span-2 bg-orange-50 rounded-xl px-3 py-2 flex items-center justify-between">
+                <span className="text-xs text-orange-600 font-medium">Calories (auto)</span>
+                <span className="text-lg font-bold text-orange-600">{calories} <span className="text-xs font-normal text-orange-400">kcal</span></span>
+              </div>
               {[
-                { label: 'Calories (kcal)', val: calories, set: setCalories },
                 { label: 'Protein (g)', val: protein, set: setProtein },
                 { label: 'Carbs (g)', val: carbs, set: setCarbs },
                 { label: 'Fat (g)', val: fat, set: setFat },
