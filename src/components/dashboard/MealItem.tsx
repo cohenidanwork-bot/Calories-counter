@@ -8,6 +8,7 @@ interface MealItemProps {
   entry: FoodEntry;
   onDelete: (id: string) => void;
   onEdit: (updated: FoodEntry) => void;
+  onDuplicate: (entry: FoodEntry) => void;
 }
 
 const methodIcon = {
@@ -212,7 +213,7 @@ function EditModal({ entry, onSave, onClose }: EditModalProps) {
   );
 }
 
-export function MealItem({ entry, onDelete, onEdit }: MealItemProps) {
+export function MealItem({ entry, onDelete, onEdit, onDuplicate }: MealItemProps) {
   const [showEdit, setShowEdit] = useState(false);
 
   const handleSave = (updated: FoodEntry) => {
@@ -240,6 +241,15 @@ export function MealItem({ entry, onDelete, onEdit }: MealItemProps) {
           <p className="font-semibold text-gray-900">{Math.round(entry.nutrients.calories)}</p>
           <p className="text-xs text-gray-400">kcal</p>
         </div>
+        <button
+          onClick={() => onDuplicate(entry)}
+          className="w-8 h-8 rounded-xl hover:bg-green-50 flex items-center justify-center text-gray-300 hover:text-green-400 transition-colors shrink-0"
+          aria-label="Duplicate entry"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+        </button>
         <button
           onClick={() => setShowEdit(true)}
           className="w-8 h-8 rounded-xl hover:bg-blue-50 flex items-center justify-center text-gray-300 hover:text-blue-400 transition-colors shrink-0"

@@ -9,7 +9,7 @@ import { useUser } from '@/context/UserContext';
 import { DailySummaryCard } from '@/components/dashboard/DailySummaryCard';
 import { MacroGrid } from '@/components/dashboard/MacroGrid';
 import { MealList } from '@/components/dashboard/MealList';
-import { DEFAULT_GOALS } from '@/types/food';
+import { DEFAULT_GOALS, FoodEntry } from '@/types/food';
 
 function formatDate(dateStr: string): string {
   const today = getTodayString();
@@ -30,7 +30,12 @@ export default function HomePage() {
   const today = getTodayString();
   const [selectedDate, setSelectedDate] = useState(today);
 
-  const { entries, removeEntry, editEntry } = useFoodLog(userId ?? '', selectedDate);
+  const { entries, addEntry, removeEntry, editEntry } = useFoodLog(userId ?? '', selectedDate);
+
+  const duplicateEntry = (entry: FoodEntry) => {
+    const { id: _id, date: _date, timestamp: _ts, ...rest } = entry;
+    addEntry(rest);
+  };
   const goals = userId ? getGoals(userId) : DEFAULT_GOALS;
   const { totals } = useDailyTotals(entries, goals);
   const isToday = selectedDate === today;
@@ -72,7 +77,7 @@ export default function HomePage() {
 
       <DailySummaryCard totals={totals} goals={goals} />
       <MacroGrid totals={totals} goals={goals} />
-      <MealList entries={entries} onDelete={removeEntry} onEdit={editEntry} />
+      <MealList entries={entries} onDelete={removeEntry} onEdit={editEntry} onDuplicate={duplicateEntry} />
     </main>
   );
 }

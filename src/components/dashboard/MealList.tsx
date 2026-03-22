@@ -8,11 +8,12 @@ interface MealListProps {
   entries: FoodEntry[];
   onDelete: (id: string) => void;
   onEdit: (updated: FoodEntry) => void;
+  onDuplicate: (entry: FoodEntry) => void;
 }
 
 const MEAL_ORDER: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 
-export function MealList({ entries, onDelete, onEdit }: MealListProps) {
+export function MealList({ entries, onDelete, onEdit, onDuplicate }: MealListProps) {
   if (entries.length === 0) {
     return (
       <Card className="text-center py-10">
@@ -58,7 +59,7 @@ export function MealList({ entries, onDelete, onEdit }: MealListProps) {
             </div>
             <div className="px-4">
               {groupEntries.map((entry) => (
-                <MealItem key={entry.id} entry={entry} onDelete={onDelete} onEdit={onEdit} />
+                <MealItem key={entry.id} entry={entry} onDelete={onDelete} onEdit={onEdit} onDuplicate={onDuplicate} />
               ))}
             </div>
           </Card>
