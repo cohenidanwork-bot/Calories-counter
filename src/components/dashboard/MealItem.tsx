@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { FoodEntry, MealType, MEAL_TYPES, AMOUNT_UNITS, AmountUnit } from '@/types/food';
 import { Badge } from '@/components/ui/Badge';
 
@@ -218,59 +218,98 @@ function EditModal({ entry, onSave, onClose }: EditModalProps) {
 
 export function MealItem({ entry, onDelete, onEdit, onDuplicate }: MealItemProps) {
   const [showEdit, setShowEdit] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setShowMenu(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showMenu]);
 
   const handleSave = (updated: FoodEntry) => {
     onEdit(updated);
     setShowEdit(false);
   };
 
+  const { protein, carbs, fat } = entry.nutrients;
+
   return (
     <>
-      <div className="flex items-center gap-3 py-3 border-b border-gray-100 last:border-0">
-        <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 shrink-0">
+      <div className="flex items-start gap-3 py-3 border-b border-gray-100 last:border-0">
+        <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 shrink-0 mt-0.5">
           {methodIcon[entry.inputMethod] ?? methodIcon.text}
         </div>
+
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-gray-900 truncate">{entry.name}</p>
-          <div className="flex items-center gap-2 mt-0.5">
+          <p className="font-medium text-gray-900 leading-snug line-clamp-2">{entry.name}</p>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="text-xs text-gray-400">{formatTime(entry.timestamp)}</span>
             {entry.amount && entry.unit && (
               <span className="text-xs text-gray-400">{entry.amount} {entry.unit}</span>
             )}
             {entry.confidence === 'low' && <Badge label="uncertain" variant="yellow" />}
           </div>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs text-blue-500 font-medium">P {Math.round(protein)}g</span>
+            <span className="text-xs text-amber-500 font-medium">C {Math.round(carbs)}g</span>
+            <span className="text-xs text-orange-400 font-medium">F {Math.round(fat)}g</span>
+          </div>
         </div>
-        <div className="text-right shrink-0">
-          <p className="font-semibold text-gray-900">{Math.round(entry.nutrients.calories)}</p>
-          <p className="text-xs text-gray-400">kcal</p>
+
+        <div className="flex items-center gap-1 shrink-0">
+          <div className="text-right mr-1">
+            <p className="font-semibold text-gray-900 leading-none">{Math.round(entry.nutrients.calories)}</p>
+            <p className="text-xs text-gray-400">kcal</p>
+          </div>
+
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setShowMenu((v) => !v)}
+              className="w-8 h-8 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="More options"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
+              </svg>
+            </button>
+
+            {showMenu && (
+              <div className="absolute right-0 top-9 bg-white rounded-2xl shadow-lg border border-gray-100 z-20 py-1 w-36">
+                <button
+                  onClick={() => { setShowEdit(true); setShowMenu(false); }}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                  Edit
+                </button>
+                <button
+                  onClick={() => { onDuplicate(entry); setShowMenu(false); }}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Duplicate
+                </button>
+                <button
+                  onClick={() => { onDelete(entry.id); setShowMenu(false); }}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-        <button
-          onClick={() => onDuplicate(entry)}
-          className="w-8 h-8 rounded-xl hover:bg-green-50 flex items-center justify-center text-gray-300 hover:text-green-400 transition-colors shrink-0"
-          aria-label="Duplicate entry"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-        </button>
-        <button
-          onClick={() => setShowEdit(true)}
-          className="w-8 h-8 rounded-xl hover:bg-blue-50 flex items-center justify-center text-gray-300 hover:text-blue-400 transition-colors shrink-0"
-          aria-label="Edit entry"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-          </svg>
-        </button>
-        <button
-          onClick={() => onDelete(entry.id)}
-          className="w-8 h-8 rounded-xl hover:bg-red-50 flex items-center justify-center text-gray-300 hover:text-red-400 transition-colors shrink-0"
-          aria-label="Delete entry"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </button>
       </div>
 
       {showEdit && (
