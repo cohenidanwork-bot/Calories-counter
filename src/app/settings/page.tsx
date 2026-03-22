@@ -8,7 +8,6 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
 
 const GOAL_FIELDS: { key: keyof DailyGoals; label: string; unit: string; color: string }[] = [
-  { key: 'calories', label: 'Calories', unit: 'kcal', color: 'text-orange-600' },
   { key: 'protein', label: 'Protein', unit: 'g', color: 'text-blue-600' },
   { key: 'carbs', label: 'Carbs', unit: 'g', color: 'text-amber-600' },
   { key: 'fat', label: 'Fat', unit: 'g', color: 'text-orange-500' },
@@ -23,11 +22,20 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (userId) setGoals(getGoals(userId));
+    if (userId) {
+      const g = getGoals(userId);
+      setGoals({ ...g, calories: Math.round(g.protein * 4 + g.carbs * 4 + g.fat * 9) });
+    }
   }, [userId]);
 
+  const calcCalories = (g: DailyGoals) =>
+    Math.round(g.protein * 4 + g.carbs * 4 + g.fat * 9);
+
   const handleChange = (key: keyof DailyGoals, value: string) => {
-    setGoals((prev) => ({ ...prev, [key]: parseFloat(value) || 0 }));
+    setGoals((prev) => {
+      const updated = { ...prev, [key]: parseFloat(value) || 0 };
+      return { ...updated, calories: calcCalories(updated) };
+    });
     setSaved(false);
   };
 
@@ -56,6 +64,14 @@ export default function SettingsPage() {
         </p>
 
         <div className="space-y-3">
+          <div className="flex items-center justify-between bg-orange-50 rounded-xl px-3 py-2">
+            <div>
+              <p className="text-sm font-medium text-orange-700">Calories (auto)</p>
+              <p className="text-xs text-orange-400">calculated from macros</p>
+            </div>
+            <span className="text-lg font-bold text-orange-600">{goals.calories} <span className="text-xs font-normal text-orange-400">kcal</span></span>
+          </div>
+
           {GOAL_FIELDS.map(({ key, label, unit, color }) => (
             <div key={key} className="flex items-center gap-3">
               <div className="flex-1">
