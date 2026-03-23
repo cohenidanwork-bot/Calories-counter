@@ -1,50 +1,51 @@
 import { Nutrients } from '@/types/food';
 
-interface OFFProduct {
-  nutriments?: {
-    'energy-kcal_100g'?: number;
-    'energy_100g'?: number;
-    proteins_100g?: number;
-    carbohydrates_100g?: number;
-    fat_100g?: number;
-    fiber_100g?: number;
-    sugars_100g?: number;
-    sodium_100g?: number;
-  };
-  product_name?: string;
+// USDA FoodData Central nutrient IDs
+const NID = {
+  calories: 1008,
+  protein:  1003,
+  carbs:    1005,
+  fat:      1004,
+  fiber:    1079,
+  sugar:    2000,
+  sodium:   1093,
+} as const;
+
+interface UsdaFoodNutrient {
+  nutrientId: number;
+  value: number;
+  unitName: string;
 }
 
-interface OFFSearchResponse {
-  products?: OFFProduct[];
+interface UsdaFood {
+  description: string;
+  foodNutrients: UsdaFoodNutrient[];
 }
 
-function hasCompleteData(p: OFFProduct): boolean {
-  const n = p.nutriments;
-  if (!n) return false;
-  const kcal = n['energy-kcal_100g'] ?? (n['energy_100g'] ? n['energy_100g'] / 4.184 : undefined);
-  return (
-    kcal !== undefined &&
-    n.proteins_100g !== undefined &&
-    n.carbohydrates_100g !== undefined &&
-    n.fat_100g !== undefined
-  );
+interface UsdaSearchResponse {
+  foods?: UsdaFood[];
 }
 
-function scaleNutrients(p: OFFProduct, amountGrams: number): Nutrients {
-  const n = p.nutriments!;
+function nutrientValue(food: UsdaFood, id: number): number {
+  return food.foodNutrients.find((n) => n.nutrientId === id)?.value ?? 0;
+}
+
+function scaleFood(food: UsdaFood, amountGrams: number): Nutrients {
   const ratio = amountGrams / 100;
-  const kcalPer100 =
-    n['energy-kcal_100g'] ?? (n['energy_100g'] ? n['energy_100g'] / 4.184 : 0);
-
   return {
-    calories: Math.round(kcalPer100 * ratio),
-    protein: Math.round((n.proteins_100g ?? 0) * ratio * 10) / 10,
-    carbs: Math.round((n.carbohydrates_100g ?? 0) * ratio * 10) / 10,
-    fat: Math.round((n.fat_100g ?? 0) * ratio * 10) / 10,
-    fiber: Math.round((n.fiber_100g ?? 0) * ratio * 10) / 10,
-    sugar: Math.round((n.sugars_100g ?? 0) * ratio * 10) / 10,
-    sodium: Math.round((n.sodium_100g ?? 0) * ratio * 1000), // kg→mg
+    calories: Math.round(nutrientValue(food, NID.calories) * ratio),
+    protein:  Math.round(nutrientValue(food, NID.protein)  * ratio * 10) / 10,
+    carbs:    Math.round(nutrientValue(food, NID.carbs)    * ratio * 10) / 10,
+    fat:      Math.round(nutrientValue(food, NID.fat)      * ratio * 10) / 10,
+    fiber:    Math.round(nutrientValue(food, NID.fiber)    * ratio * 10) / 10,
+    sugar:    Math.round(nutrientValue(food, NID.sugar)    * ratio * 10) / 10,
+    sodium:   Math.round(nutrientValue(food, NID.sodium)   * ratio),
   };
+}
+
+function hasCoreMacros(food: UsdaFood): boolean {
+  const ids = new Set(food.foodNutrients.map((n) => n.nutrientId));
+  return ids.has(NID.calories) && ids.has(NID.protein) && ids.has(NID.carbs) && ids.has(NID.fat);
 }
 
 export async function lookupNutrients(
@@ -52,23 +53,24 @@ export async function lookupNutrients(
   amountGrams: number
 ): Promise<{ nutrients: Nutrients; foodLabel: string } | null> {
   try {
-    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(searchName)}&json=1&page_size=10&fields=product_name,nutriments`;
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'CaloriesCounter/1.0 (educational project)' },
-      signal: AbortSignal.timeout(5000),
-    });
+    const apiKey = process.env.USDA_API_KEY || 'DEMO_KEY';
+    const url =
+      `https://api.nal.usda.gov/fdc/v1/foods/search` +
+      `?query=${encodeURIComponent(searchName)}` +
+      `&dataType=Foundation,SR%20Legacy` +
+      `&pageSize=5` +
+      `&api_key=${apiKey}`;
 
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!res.ok) return null;
 
-    const data: OFFSearchResponse = await res.json();
-    const products = data.products ?? [];
-
-    const match = products.find(hasCompleteData);
+    const data: UsdaSearchResponse = await res.json();
+    const match = (data.foods ?? []).find(hasCoreMacros);
     if (!match) return null;
 
     return {
-      nutrients: scaleNutrients(match, amountGrams),
-      foodLabel: match.product_name || searchName,
+      nutrients: scaleFood(match, amountGrams),
+      foodLabel: match.description,
     };
   } catch {
     return null;
