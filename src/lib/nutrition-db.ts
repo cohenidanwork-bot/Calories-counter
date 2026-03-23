@@ -14,11 +14,11 @@ const NID = {
 interface UsdaFoodNutrient {
   nutrientId: number;
   value: number;
-  unitName: string;
 }
 
 interface UsdaFood {
   description: string;
+  dataType: string;
   foodNutrients: UsdaFoodNutrient[];
 }
 
@@ -26,26 +26,45 @@ interface UsdaSearchResponse {
   foods?: UsdaFood[];
 }
 
-function nutrientValue(food: UsdaFood, id: number): number {
+function nv(food: UsdaFood, id: number): number {
   return food.foodNutrients.find((n) => n.nutrientId === id)?.value ?? 0;
-}
-
-function scaleFood(food: UsdaFood, amountGrams: number): Nutrients {
-  const ratio = amountGrams / 100;
-  return {
-    calories: Math.round(nutrientValue(food, NID.calories) * ratio),
-    protein:  Math.round(nutrientValue(food, NID.protein)  * ratio * 10) / 10,
-    carbs:    Math.round(nutrientValue(food, NID.carbs)    * ratio * 10) / 10,
-    fat:      Math.round(nutrientValue(food, NID.fat)      * ratio * 10) / 10,
-    fiber:    Math.round(nutrientValue(food, NID.fiber)    * ratio * 10) / 10,
-    sugar:    Math.round(nutrientValue(food, NID.sugar)    * ratio * 10) / 10,
-    sodium:   Math.round(nutrientValue(food, NID.sodium)   * ratio),
-  };
 }
 
 function hasCoreMacros(food: UsdaFood): boolean {
   const ids = new Set(food.foodNutrients.map((n) => n.nutrientId));
   return ids.has(NID.calories) && ids.has(NID.protein) && ids.has(NID.carbs) && ids.has(NID.fat);
+}
+
+function scaleFood(food: UsdaFood, amountGrams: number): Nutrients {
+  const r = amountGrams / 100;
+  return {
+    calories: Math.round(nv(food, NID.calories) * r),
+    protein:  Math.round(nv(food, NID.protein)  * r * 10) / 10,
+    carbs:    Math.round(nv(food, NID.carbs)    * r * 10) / 10,
+    fat:      Math.round(nv(food, NID.fat)      * r * 10) / 10,
+    fiber:    Math.round(nv(food, NID.fiber)    * r * 10) / 10,
+    sugar:    Math.round(nv(food, NID.sugar)    * r * 10) / 10,
+    sodium:   Math.round(nv(food, NID.sodium)   * r),
+  };
+}
+
+async function queryUsda(
+  query: string,
+  dataType: string,
+  apiKey: string
+): Promise<UsdaFood | null> {
+  const url =
+    `https://api.nal.usda.gov/fdc/v1/foods/search` +
+    `?query=${encodeURIComponent(query)}` +
+    `&dataType=${dataType}` +
+    `&pageSize=5` +
+    `&api_key=${apiKey}`;
+
+  const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+  if (!res.ok) return null;
+
+  const data: UsdaSearchResponse = await res.json();
+  return (data.foods ?? []).find(hasCoreMacros) ?? null;
 }
 
 export async function lookupNutrients(
@@ -54,18 +73,13 @@ export async function lookupNutrients(
 ): Promise<{ nutrients: Nutrients; foodLabel: string } | null> {
   try {
     const apiKey = process.env.USDA_API_KEY || 'DEMO_KEY';
-    const url =
-      `https://api.nal.usda.gov/fdc/v1/foods/search` +
-      `?query=${encodeURIComponent(searchName)}` +
-      `&dataType=Foundation,SR%20Legacy` +
-      `&pageSize=5` +
-      `&api_key=${apiKey}`;
 
-    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return null;
+    // Foundation = lab-tested reference foods (most accurate for plain ingredients)
+    // SR Legacy  = USDA Standard Reference — broader coverage, still generic
+    const match =
+      (await queryUsda(searchName, 'Foundation', apiKey)) ??
+      (await queryUsda(searchName, 'SR%20Legacy', apiKey));
 
-    const data: UsdaSearchResponse = await res.json();
-    const match = (data.foods ?? []).find(hasCoreMacros);
     if (!match) return null;
 
     return {
