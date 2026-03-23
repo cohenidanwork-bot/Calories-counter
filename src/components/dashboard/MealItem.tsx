@@ -220,7 +220,9 @@ export function MealItem({ entry, onDelete, onEdit, onDuplicate }: MealItemProps
   const [showEdit, setShowEdit] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showMoveTo, setShowMoveTo] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!showMenu) { setShowMoveTo(false); return; }
@@ -233,6 +235,15 @@ export function MealItem({ entry, onDelete, onEdit, onDuplicate }: MealItemProps
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showMenu]);
+
+  const handleMenuToggle = () => {
+    if (!showMenu && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      // If less than 280px below the button, open upward
+      setOpenUpward(window.innerHeight - rect.bottom < 280);
+    }
+    setShowMenu((v) => !v);
+  };
 
   const handleSave = (updated: FoodEntry) => {
     onEdit(updated);
@@ -279,7 +290,8 @@ export function MealItem({ entry, onDelete, onEdit, onDuplicate }: MealItemProps
 
           <div className="relative" ref={menuRef}>
             <button
-              onClick={() => setShowMenu((v) => !v)}
+              ref={buttonRef}
+              onClick={handleMenuToggle}
               className="w-8 h-8 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
               aria-label="More options"
             >
@@ -289,7 +301,7 @@ export function MealItem({ entry, onDelete, onEdit, onDuplicate }: MealItemProps
             </button>
 
             {showMenu && (
-              <div className="absolute right-0 top-9 bg-white rounded-2xl shadow-lg border border-gray-100 z-20 py-1 w-44">
+              <div className={`absolute right-0 bg-white rounded-2xl shadow-lg border border-gray-100 z-20 py-1 w-44 ${openUpward ? 'bottom-9' : 'top-9'}`}>
                 <button
                   onClick={() => { setShowEdit(true); setShowMenu(false); }}
                   className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 active:bg-gray-50"
