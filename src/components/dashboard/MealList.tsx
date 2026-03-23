@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { FoodEntry, MealType, MEAL_TYPES } from '@/types/food';
 import { MealItem } from './MealItem';
 import { Card } from '@/components/ui/Card';
@@ -14,6 +15,9 @@ interface MealListProps {
 const MEAL_ORDER: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 
 export function MealList({ entries, onDelete, onEdit, onDuplicate }: MealListProps) {
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverMeal, setDragOverMeal] = useState<MealType | null>(null);
+
   if (entries.length === 0) {
     return (
       <Card className="text-center py-10">
@@ -26,7 +30,6 @@ export function MealList({ entries, onDelete, onEdit, onDuplicate }: MealListPro
     );
   }
 
-  // Group entries by mealType
   const grouped: Record<MealType, FoodEntry[]> = {
     breakfast: [],
     lunch: [],
@@ -39,7 +42,23 @@ export function MealList({ entries, onDelete, onEdit, onDuplicate }: MealListPro
     grouped[mt].push(entry);
   }
 
-  const visibleGroups = MEAL_ORDER.filter((mt) => grouped[mt].length > 0);
+  const draggingEntry = draggingId ? entries.find((e) => e.id === draggingId) : null;
+
+  // Show all groups while dragging so every meal type is a valid drop target
+  const visibleGroups = draggingId
+    ? MEAL_ORDER
+    : MEAL_ORDER.filter((mt) => grouped[mt].length > 0);
+
+  const handleDrop = (targetMeal: MealType) => {
+    if (!draggingEntry || draggingEntry.mealType === targetMeal) {
+      setDraggingId(null);
+      setDragOverMeal(null);
+      return;
+    }
+    onEdit({ ...draggingEntry, mealType: targetMeal });
+    setDraggingId(null);
+    setDragOverMeal(null);
+  };
 
   return (
     <div className="space-y-3">
@@ -47,20 +66,56 @@ export function MealList({ entries, onDelete, onEdit, onDuplicate }: MealListPro
         const config = MEAL_TYPES.find((m) => m.value === mt)!;
         const groupEntries = [...grouped[mt]].sort((a, b) => a.timestamp - b.timestamp);
         const groupCalories = groupEntries.reduce((sum, e) => sum + e.nutrients.calories, 0);
+        const isOver = dragOverMeal === mt;
+        const isDraggingIntoEmpty = isOver && grouped[mt].length === 0;
 
         return (
-          <Card key={mt} padding={false} className="overflow-hidden">
+          <Card
+            key={mt}
+            padding={false}
+            className={`overflow-hidden transition-colors ${isOver ? 'ring-2 ring-green-400 bg-green-50/30' : ''}`}
+            onDragOver={(e) => { e.preventDefault(); setDragOverMeal(mt); }}
+            onDragLeave={(e) => {
+              // only clear if leaving the card entirely
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverMeal(null);
+            }}
+            onDrop={() => handleDrop(mt)}
+          >
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-base">{config.emoji}</span>
                 <h2 className="font-semibold text-gray-700 text-sm">{config.label}</h2>
               </div>
-              <span className="text-xs text-gray-400 font-medium">{Math.round(groupCalories)} kcal</span>
+              <span className="text-xs text-gray-400 font-medium">
+                {grouped[mt].length > 0 ? `${Math.round(groupCalories)} kcal` : ''}
+              </span>
             </div>
+
             <div className="px-4">
               {groupEntries.map((entry) => (
-                <MealItem key={entry.id} entry={entry} onDelete={onDelete} onEdit={onEdit} onDuplicate={onDuplicate} />
+                <MealItem
+                  key={entry.id}
+                  entry={entry}
+                  onDelete={onDelete}
+                  onEdit={onEdit}
+                  onDuplicate={onDuplicate}
+                  isDragging={draggingId === entry.id}
+                  onDragStart={() => setDraggingId(entry.id)}
+                  onDragEnd={() => { setDraggingId(null); setDragOverMeal(null); }}
+                />
               ))}
+
+              {isDraggingIntoEmpty && (
+                <div className="py-4 text-center text-xs text-green-500 font-medium">
+                  Drop here to move to {config.label}
+                </div>
+              )}
+
+              {!isDraggingIntoEmpty && grouped[mt].length === 0 && draggingId && (
+                <div className="py-4 text-center text-xs text-gray-300">
+                  Drop here to move to {config.label}
+                </div>
+              )}
             </div>
           </Card>
         );

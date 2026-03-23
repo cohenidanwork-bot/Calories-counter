@@ -9,6 +9,9 @@ interface MealItemProps {
   onDelete: (id: string) => void;
   onEdit: (updated: FoodEntry) => void;
   onDuplicate: (entry: FoodEntry) => void;
+  isDragging?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
 }
 
 const methodIcon = {
@@ -216,7 +219,7 @@ function EditModal({ entry, onSave, onClose }: EditModalProps) {
   );
 }
 
-export function MealItem({ entry, onDelete, onEdit, onDuplicate }: MealItemProps) {
+export function MealItem({ entry, onDelete, onEdit, onDuplicate, isDragging, onDragStart, onDragEnd }: MealItemProps) {
   const [showEdit, setShowEdit] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -239,7 +242,12 @@ export function MealItem({ entry, onDelete, onEdit, onDuplicate }: MealItemProps
 
   return (
     <>
-      <div className="flex items-start gap-3 py-3 border-b border-gray-100 last:border-0">
+      <div
+        draggable
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        className={`flex items-start gap-3 py-3 border-b border-gray-100 last:border-0 cursor-grab active:cursor-grabbing transition-opacity ${isDragging ? 'opacity-40' : ''}`}
+      >
         <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 shrink-0 mt-0.5">
           {methodIcon[entry.inputMethod] ?? methodIcon.text}
         </div>
