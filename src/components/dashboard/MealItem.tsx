@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { FoodEntry, MealType, MEAL_TYPES, AMOUNT_UNITS, AmountUnit } from '@/types/food';
 import { Badge } from '@/components/ui/Badge';
 
@@ -220,7 +221,7 @@ export function MealItem({ entry, onDelete, onEdit, onDuplicate }: MealItemProps
   const [showEdit, setShowEdit] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showMoveTo, setShowMoveTo] = useState(false);
-  const [openUpward, setOpenUpward] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<{ top?: number; bottom?: number; right: number }>({ top: 0, right: 0 });
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -239,8 +240,13 @@ export function MealItem({ entry, onDelete, onEdit, onDuplicate }: MealItemProps
   const handleMenuToggle = () => {
     if (!showMenu && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      // If less than 280px below the button, open upward
-      setOpenUpward(window.innerHeight - rect.bottom < 280);
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const right = window.innerWidth - rect.right;
+      if (spaceBelow < 280) {
+        setMenuStyle({ bottom: window.innerHeight - rect.top, right });
+      } else {
+        setMenuStyle({ top: rect.bottom + 4, right });
+      }
     }
     setShowMenu((v) => !v);
   };
@@ -288,7 +294,7 @@ export function MealItem({ entry, onDelete, onEdit, onDuplicate }: MealItemProps
             <p className="text-xs text-gray-400">kcal</p>
           </div>
 
-          <div className="relative" ref={menuRef}>
+          <div className="relative">
             <button
               ref={buttonRef}
               onClick={handleMenuToggle}
@@ -300,8 +306,11 @@ export function MealItem({ entry, onDelete, onEdit, onDuplicate }: MealItemProps
               </svg>
             </button>
 
-            {showMenu && (
-              <div className={`absolute right-0 bg-white rounded-2xl shadow-lg border border-gray-100 z-20 py-1 w-44 ${openUpward ? 'bottom-9' : 'top-9'}`}>
+            {showMenu && typeof document !== 'undefined' && createPortal(
+              <div
+                ref={menuRef}
+                style={{ position: 'fixed', ...menuStyle, width: 176, zIndex: 9999 }}
+                className="bg-white rounded-2xl shadow-xl border border-gray-100 py-1">
                 <button
                   onClick={() => { setShowEdit(true); setShowMenu(false); }}
                   className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 active:bg-gray-50"
@@ -361,7 +370,8 @@ export function MealItem({ entry, onDelete, onEdit, onDuplicate }: MealItemProps
                     Delete
                   </button>
                 </div>
-              </div>
+              </div>,
+              document.body
             )}
           </div>
         </div>
