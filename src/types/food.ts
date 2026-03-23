@@ -26,6 +26,8 @@ export interface FoodEntry {
   unit?: AmountUnit;
   nutrients: Nutrients;
   confidence: 'high' | 'medium' | 'low';
+  source?: 'database' | 'ai';
+  amountGrams?: number;
 }
 
 export interface DailyGoals {

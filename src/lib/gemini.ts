@@ -4,6 +4,8 @@ import { AnalyzeRequest, Nutrients } from '@/types/food';
 const FOOD_PROMPT = `Analyze this food and return ONLY valid JSON with no markdown formatting, no code blocks, no explanation:
 {
   "name": "<2-5 word food name>",
+  "searchName": "<simple generic English food name for database lookup, e.g. 'chicken breast' not '2 grilled chicken breasts with sauce'>",
+  "amountGrams": <estimated total amount in grams as a number>,
   "description": "<portion and preparation method, 1-2 sentences>",
   "confidence": "<high|medium|low>",
   "nutrients": {
@@ -20,12 +22,16 @@ const FOOD_PROMPT = `Analyze this food and return ONLY valid JSON with no markdo
 Rules:
 - All nutrient values MUST be numbers (never null, never strings)
 - If portion size is unclear, assume a standard single serving
+- amountGrams: convert any unit (cups, tbsp, pieces, oz) to grams; use typical weights (1 egg ≈ 50g, 1 cup rice ≈ 185g, 1 tbsp ≈ 15g)
+- searchName: use the simplest generic form, no quantities, no adjectives like "grilled" or "cooked" unless essential (e.g. "peanut butter", "white rice", "whole milk")
 - confidence: "high" = clearly identifiable, "medium" = estimated, "low" = very uncertain
 - sodium is in milligrams, all others in grams except calories in kcal
 - If no food is detected, return calories: 0 and confidence: "low"`;
 
 export interface GeminiResult {
   name: string;
+  searchName: string;
+  amountGrams: number;
   description: string;
   confidence: 'high' | 'medium' | 'low';
   nutrients: Nutrients;
@@ -42,6 +48,8 @@ function parseResponse(raw: string): GeminiResult {
 
   return {
     name: String(parsed.name || 'Unknown food'),
+    searchName: String(parsed.searchName || parsed.name || 'Unknown food'),
+    amountGrams: coerceNumber(parsed.amountGrams) || 100,
     description: String(parsed.description || ''),
     confidence: ['high', 'medium', 'low'].includes(parsed.confidence)
       ? parsed.confidence
