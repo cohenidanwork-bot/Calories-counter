@@ -7,13 +7,18 @@ import { AnalyzeRequest, AnalyzeResponse, Nutrients } from '@/types/food';
  * Returns false when a DB result looks implausible compared to what the AI
  * estimated — a sign the lookup matched the wrong food in the database.
  *
- * Examples that fail:
- *  - DB fat = 0g but AI estimated 5g fat  → probably matched egg-white instead of whole egg
- *  - DB calories < 25% of AI calories     → completely wrong food
+ * Catches cases like:
+ *  - egg white (0.2g fat) returned instead of whole-egg dish (AI: 10g fat)
+ *  - trace-calorie food returned instead of a real meal
+ *  - massively over-dense food (e.g. coconut oil) returned for a light dish
  */
 function isDbPlausible(db: Nutrients, ai: Nutrients): boolean {
-  if (ai.fat > 3 && db.fat === 0) return false;
-  if (ai.calories > 50 && db.calories < ai.calories * 0.25) return false;
+  // DB fat < 1g but AI estimated meaningful fat → wrong food (e.g. egg white for omelet)
+  if (ai.fat > 3 && db.fat < 1) return false;
+  // DB calories less than 40% of AI estimate → completely wrong food
+  if (ai.calories > 50 && db.calories < ai.calories * 0.4) return false;
+  // DB calories more than 3× AI estimate → wrong food (e.g. cooking oil for a light dish)
+  if (ai.calories > 50 && db.calories > ai.calories * 3) return false;
   return true;
 }
 
