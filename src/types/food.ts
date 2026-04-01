@@ -40,8 +40,10 @@ export interface DailyGoals {
   sodium: number;
 }
 
+// Calories derived via net-carb Atwater: protein×4 + (carbs−fiber)×4 + fat×9
+// 50×4 + (275−28)×4 + 78×9 = 200 + 988 + 702 = 1890 kcal
 export const DEFAULT_GOALS: DailyGoals = {
-  calories: 2000,
+  calories: 1890,
   protein: 50,
   carbs: 275,
   fat: 78,

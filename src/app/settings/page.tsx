@@ -21,15 +21,16 @@ export default function SettingsPage() {
   const [goals, setGoals] = useState<DailyGoals>(DEFAULT_GOALS);
   const [saved, setSaved] = useState(false);
 
+  // Net-carb Atwater: fiber ≈ 0 kcal/g (FDA), subtract it from total carbs.
+  const calcCalories = (g: DailyGoals) =>
+    Math.round(g.protein * 4 + Math.max(0, g.carbs - g.fiber) * 4 + g.fat * 9);
+
   useEffect(() => {
     if (userId) {
       const g = getGoals(userId);
-      setGoals({ ...g, calories: Math.round(g.protein * 4 + g.carbs * 4 + g.fat * 9) });
+      setGoals({ ...g, calories: calcCalories(g) });
     }
   }, [userId]);
-
-  const calcCalories = (g: DailyGoals) =>
-    Math.round(g.protein * 4 + g.carbs * 4 + g.fat * 9);
 
   const handleChange = (key: keyof DailyGoals, value: string) => {
     setGoals((prev) => {
