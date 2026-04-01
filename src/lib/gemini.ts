@@ -32,25 +32,29 @@ Rules you must follow:
 1. All values must be non-negative numbers. Never use null or strings.
 2. Calorie formula: calories = (protein × 4) + ((carbs − fiber) × 4) + (fat × 9)
 3. sugar must be ≤ carbs. fiber must be ≤ carbs.
-4. amountGrams — convert to grams using these standard weights:
-   1 large egg = 50g | 1 medium egg = 44g
-   1 cup cooked rice = 185g | 1 cup cooked pasta = 140g | 1 cup cooked oats = 234g
-   1 cup milk = 244g | 1 tbsp = 15g | 1 tsp = 5g | 1 oz = 28g
-   1 medium apple = 182g | 1 medium banana = 118g | 1 medium potato = 150g
-   1 chicken breast = 174g | 1 slice bread = 30g | 1 serving = 100g (if unclear)
-5. confidence: "high" = simple food clearly described, "medium" = mixed dish or estimated,
+4. amountGrams — the TOTAL weight of the food as described:
+   • 1 large egg = 50g  →  2 large eggs = 100g  →  3 large eggs = 150g
+   • 1 cup cooked rice = 185g | 1 cup cooked pasta = 140g | 1 cup cooked oats = 234g
+   • 1 cup milk = 244g | 1 tbsp = 15g | 1 tsp = 5g | 1 oz = 28g
+   • 1 medium apple = 182g | 1 medium banana = 118g | 1 medium potato = 150g
+   • 1 chicken breast = 174g | 1 slice bread = 30g | 1 serving = 100g (if unclear)
+5. For egg dishes (omelet, scrambled, fried): unless oil/butter amount is stated,
+   add only 5g of cooking fat. Never count eggs as 100g each — 1 large egg = 50g.
+6. confidence: "high" = simple food clearly described, "medium" = mixed dish or estimated,
    "low" = very unclear or multiple items with unknown quantities
-6. If no food detected, return all nutrients as 0 and confidence "low".
+7. If no food detected, return all nutrients as 0 and confidence "low".
 
-Reference values for accuracy (per 100g):
-- Whole egg: 143 kcal | 12.6g protein | 0.7g carbs | 9.5g fat | 0g fiber | 142mg sodium
-- Chicken breast, cooked: 165 kcal | 31g protein | 0g carbs | 3.6g fat | 0g fiber | 74mg sodium
-- White rice, cooked: 130 kcal | 2.7g protein | 28g carbs | 0.3g fat | 0.4g fiber | 1mg sodium
-- Whole milk: 61 kcal | 3.2g protein | 4.8g carbs | 3.3g fat | 0g fiber | 43mg sodium
-- Banana: 89 kcal | 1.1g protein | 23g carbs | 0.3g fat | 2.6g fiber | 1mg sodium
-- Olive oil: 884 kcal | 0g protein | 0g carbs | 100g fat | 0g fiber | 2mg sodium
-- Cheddar cheese: 403 kcal | 25g protein | 1.3g carbs | 33g fat | 0g fiber | 621mg sodium
-- White bread: 265 kcal | 9g protein | 49g carbs | 3.2g fat | 2.7g fiber | 491mg sodium`;
+Reference values — use THESE EXACT numbers as your baseline:
+ 1 large egg (50g):           72 kcal |  6.3g protein |  0.4g carbs |  4.8g fat |  0g fiber |  71mg sodium
+ 2 large eggs (100g):        143 kcal | 12.6g protein |  0.7g carbs |  9.5g fat |  0g fiber | 142mg sodium
+ 2-egg plain omelet (~105g): 180 kcal | 13g protein   |  1g carbs   | 13g fat   |  0g fiber | 160mg sodium
+ 100g cooked chicken breast: 165 kcal | 31g protein   |  0g carbs   |  3.6g fat |  0g fiber |  74mg sodium
+ 100g cooked white rice:     130 kcal |  2.7g protein | 28g carbs   |  0.3g fat | 0.4g fiber |  1mg sodium
+ 1 cup whole milk (244g):    149 kcal |  8g protein   | 11.7g carbs |  8g fat   |  0g fiber | 105mg sodium
+ 1 medium banana (118g):     105 kcal |  1.3g protein | 27g carbs   |  0.4g fat | 3.1g fiber |  1mg sodium
+ 1 slice white bread (30g):   79 kcal |  2.7g protein | 15g carbs   |  1g fat   | 0.6g fiber | 147mg sodium
+ 1 tbsp olive oil (14g):     119 kcal |  0g protein   |  0g carbs   | 13.5g fat |  0g fiber |   0mg sodium
+ 100g cheddar cheese:        403 kcal | 25g protein   |  1.3g carbs | 33g fat   |  0g fiber | 621mg sodium`;
 
 const IMAGE_PROMPT = `Analyze the food shown in this image and return its nutritional data.
 
