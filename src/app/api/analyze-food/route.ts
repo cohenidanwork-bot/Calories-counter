@@ -1,26 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeFood } from '@/lib/gemini';
-import { lookupNutrients } from '@/lib/nutrition-db';
-import { AnalyzeRequest, AnalyzeResponse, Nutrients } from '@/types/food';
-
-/**
- * Returns false when a DB result looks implausible compared to what the AI
- * estimated — a sign the lookup matched the wrong food in the database.
- *
- * Catches cases like:
- *  - egg white (0.2g fat) returned instead of whole-egg dish (AI: 10g fat)
- *  - trace-calorie food returned instead of a real meal
- *  - massively over-dense food (e.g. coconut oil) returned for a light dish
- */
-function isDbPlausible(db: Nutrients, ai: Nutrients): boolean {
-  // DB fat < 1g but AI estimated meaningful fat → wrong food (e.g. egg white for omelet)
-  if (ai.fat > 3 && db.fat < 1) return false;
-  // DB calories less than 40% of AI estimate → completely wrong food
-  if (ai.calories > 50 && db.calories < ai.calories * 0.4) return false;
-  // DB calories more than 3× AI estimate → wrong food (e.g. cooking oil for a light dish)
-  if (ai.calories > 50 && db.calories > ai.calories * 3) return false;
-  return true;
-}
+import { AnalyzeRequest, AnalyzeResponse } from '@/types/food';
 
 export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeResponse>> {
   try {
@@ -49,23 +29,15 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
 
     const result = await analyzeFood(body);
 
-    // Try database lookup to ground the AI's nutrient estimates
-    const dbResult = await lookupNutrients(result.searchName, result.amountGrams);
-
-    // Only use the DB result if it looks plausible relative to what the AI estimated.
-    // If the DB matched the wrong food (e.g. egg white instead of a whole-egg dish),
-    // fall back to the AI's own estimates which are more contextually aware.
-    const useDb = dbResult != null && isDbPlausible(dbResult.nutrients, result.nutrients);
-
     return NextResponse.json({
       success: true,
       entry: {
         name: result.name,
         description: result.description,
         inputMethod: body.method,
-        nutrients: useDb ? dbResult!.nutrients : result.nutrients,
+        nutrients: result.nutrients,
         confidence: result.confidence,
-        source: useDb ? 'database' : 'ai',
+        source: 'ai',
         amountGrams: result.amountGrams,
       },
     });
@@ -73,7 +45,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('[analyze-food]', message);
 
-    const isQuotaError = message.includes('429') || message.toLowerCase().includes('quota') || message.toLowerCase().includes('too many requests');
+    const isQuotaError =
+      message.includes('429') ||
+      message.toLowerCase().includes('quota') ||
+      message.toLowerCase().includes('too many requests');
 
     return NextResponse.json(
       { success: false, error: message },
