@@ -59,27 +59,30 @@ function EditModal({ entry, onSave, onClose }: EditModalProps) {
   const [protein, setProtein] = useState(entry.nutrients.protein.toString());
   const [carbs, setCarbs] = useState(entry.nutrients.carbs.toString());
   const [fat, setFat] = useState(entry.nutrients.fat.toString());
-  const calories = Math.round((parseFloat(protein) || 0) * 4 + (parseFloat(carbs) || 0) * 4 + (parseFloat(fat) || 0) * 9);
   const [fiber, setFiber] = useState(entry.nutrients.fiber.toString());
+  // Net-carb Atwater: fiber contributes ~0 kcal/g (FDA), so subtract it from total carbs.
+  const netCarbs = Math.max(0, (parseFloat(carbs) || 0) - (parseFloat(fiber) || 0));
+  const calories = Math.round((parseFloat(protein) || 0) * 4 + netCarbs * 4 + (parseFloat(fat) || 0) * 9);
   const [sugar, setSugar] = useState(entry.nutrients.sugar.toString());
   const [sodium, setSodium] = useState(entry.nutrients.sodium.toString());
 
   const handleSave = () => {
+    const clamp = (v: string) => Math.max(0, parseFloat(v) || 0);
     onSave({
       ...entry,
       name: name.trim() || entry.name,
       description: description.trim(),
       mealType,
-      amount: amount ? parseFloat(amount) : undefined,
+      amount: amount ? Math.max(0, parseFloat(amount)) : undefined,
       unit: amount ? unit : undefined,
       nutrients: {
         calories,
-        protein: parseFloat(protein) || 0,
-        carbs: parseFloat(carbs) || 0,
-        fat: parseFloat(fat) || 0,
-        fiber: parseFloat(fiber) || 0,
-        sugar: parseFloat(sugar) || 0,
-        sodium: parseFloat(sodium) || 0,
+        protein: clamp(protein),
+        carbs: clamp(carbs),
+        fat: clamp(fat),
+        fiber: clamp(fiber),
+        sugar: clamp(sugar),
+        sodium: clamp(sodium),
       },
     });
   };
@@ -187,6 +190,8 @@ function EditModal({ entry, onSave, onClose }: EditModalProps) {
                   <label className="text-xs text-gray-400 block mb-0.5">{label}</label>
                   <input
                     type="number"
+                    min="0"
+                    step="0.1"
                     className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                     value={val}
                     onChange={(e) => set(e.target.value)}

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeFood } from '@/lib/gemini';
-import { lookupNutrients } from '@/lib/nutrition-db';
 import { AnalyzeRequest, AnalyzeResponse } from '@/types/food';
 
 export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeResponse>> {
@@ -30,18 +29,15 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
 
     const result = await analyzeFood(body);
 
-    // Try database lookup to ground the AI's nutrient estimates
-    const dbResult = await lookupNutrients(result.searchName, result.amountGrams);
-
     return NextResponse.json({
       success: true,
       entry: {
         name: result.name,
         description: result.description,
         inputMethod: body.method,
-        nutrients: dbResult ? dbResult.nutrients : result.nutrients,
+        nutrients: result.nutrients,
         confidence: result.confidence,
-        source: dbResult ? 'database' : 'ai',
+        source: 'ai',
         amountGrams: result.amountGrams,
       },
     });
@@ -49,7 +45,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('[analyze-food]', message);
 
-    const isQuotaError = message.includes('429') || message.toLowerCase().includes('quota') || message.toLowerCase().includes('too many requests');
+    const isQuotaError =
+      message.includes('429') ||
+      message.toLowerCase().includes('quota') ||
+      message.toLowerCase().includes('too many requests');
 
     return NextResponse.json(
       { success: false, error: message },

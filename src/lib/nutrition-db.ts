@@ -47,13 +47,15 @@ async function queryUsda(
     `https://api.nal.usda.gov/fdc/v1/foods/search` +
     `?query=${encodeURIComponent(query)}` +
     `&dataType=${dataType}` +
-    `&pageSize=5` +
+    `&pageSize=10` +
     `&api_key=${apiKey}`;
 
-  const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+  const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
   if (!res.ok) return null;
 
   const data: UsdaSearchResponse = await res.json();
+  // USDA already ranks results by relevance — trust its ordering and take the first
+  // valid result rather than re-ranking with a naive string match.
   const food = (data.foods ?? []).find(usdaHasMacros);
   if (!food) return null;
 
@@ -90,14 +92,14 @@ function offHasMacros(n: OFFNutriments): boolean {
   );
 }
 
-async function queryOpenFoodFacts(
-  query: string
+async function fetchOpenFoodFacts(
+  host: string,
+  query: string,
 ): Promise<{ nutrients: Nutrients; foodLabel: string } | null> {
-  // Search the Israeli country store first; it surfaces Israeli brands & dishes higher
   const url =
-    `https://il.openfoodfacts.org/cgi/search.pl` +
+    `https://${host}/cgi/search.pl` +
     `?search_terms=${encodeURIComponent(query)}` +
-    `&search_simple=1&action=process&json=1&page_size=5&lc=he,en`;
+    `&search_simple=1&action=process&json=1&page_size=5&lc=en`;
 
   const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
   if (!res.ok) return null;
@@ -121,6 +123,16 @@ async function queryOpenFoodFacts(
       sodium:   Math.round((n.sodium_100g         ?? 0) * 1000),
     },
   };
+}
+
+async function queryOpenFoodFacts(
+  query: string
+): Promise<{ nutrients: Nutrients; foodLabel: string } | null> {
+  // Try global instance first for the widest coverage, then Israeli store as fallback.
+  return (
+    (await fetchOpenFoodFacts('world.openfoodfacts.org', query)) ??
+    (await fetchOpenFoodFacts('il.openfoodfacts.org', query))
+  );
 }
 
 // ─── Scale helper ─────────────────────────────────────────────────────────────
