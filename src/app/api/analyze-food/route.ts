@@ -1,7 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeFood } from '@/lib/gemini';
 import { lookupNutrients } from '@/lib/nutrition-db';
-import { AnalyzeRequest, AnalyzeResponse } from '@/types/food';
+import { AnalyzeRequest, AnalyzeResponse, Nutrients } from '@/types/food';
+
+/**
+ * Returns false when a DB result looks implausible compared to what the AI
+ * estimated — a sign the lookup matched the wrong food in the database.
+ *
+ * Examples that fail:
+ *  - DB fat = 0g but AI estimated 5g fat  → probably matched egg-white instead of whole egg
+ *  - DB calories < 25% of AI calories     → completely wrong food
+ */
+function isDbPlausible(db: Nutrients, ai: Nutrients): boolean {
+  if (ai.fat > 3 && db.fat === 0) return false;
+  if (ai.calories > 50 && db.calories < ai.calories * 0.25) return false;
+  return true;
+}
 
 export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeResponse>> {
   try {
@@ -33,15 +47,20 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeRespon
     // Try database lookup to ground the AI's nutrient estimates
     const dbResult = await lookupNutrients(result.searchName, result.amountGrams);
 
+    // Only use the DB result if it looks plausible relative to what the AI estimated.
+    // If the DB matched the wrong food (e.g. egg white instead of a whole-egg dish),
+    // fall back to the AI's own estimates which are more contextually aware.
+    const useDb = dbResult != null && isDbPlausible(dbResult.nutrients, result.nutrients);
+
     return NextResponse.json({
       success: true,
       entry: {
         name: result.name,
         description: result.description,
         inputMethod: body.method,
-        nutrients: dbResult ? dbResult.nutrients : result.nutrients,
+        nutrients: useDb ? dbResult!.nutrients : result.nutrients,
         confidence: result.confidence,
-        source: dbResult ? 'database' : 'ai',
+        source: useDb ? 'database' : 'ai',
         amountGrams: result.amountGrams,
       },
     });

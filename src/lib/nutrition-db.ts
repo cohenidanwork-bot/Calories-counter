@@ -25,23 +25,6 @@ function usdaHasMacros(food: UsdaFood): boolean {
   return ids.has(NID.calories) && ids.has(NID.protein) && ids.has(NID.carbs) && ids.has(NID.fat);
 }
 
-/** Score how closely a USDA food description matches the search query (higher = better). */
-function usdaRelevanceScore(food: UsdaFood, query: string): number {
-  const desc = food.description.toLowerCase();
-  const q = query.toLowerCase();
-  // Exact match wins
-  if (desc === q) return 100;
-  // Description starts with query
-  if (desc.startsWith(q)) return 80;
-  // All query words present in description
-  const words = q.split(/\s+/);
-  const allWordsMatch = words.every((w) => desc.includes(w));
-  if (allWordsMatch) return 60;
-  // At least half the words match
-  const matchCount = words.filter((w) => desc.includes(w)).length;
-  return (matchCount / words.length) * 40;
-}
-
 function usdaScale(food: UsdaFood, grams: number): Nutrients {
   const r = grams / 100;
   return {
@@ -71,13 +54,10 @@ async function queryUsda(
   if (!res.ok) return null;
 
   const data: UsdaSearchResponse = await res.json();
-  const candidates = (data.foods ?? []).filter(usdaHasMacros);
-  if (candidates.length === 0) return null;
-
-  // Pick the most relevant result rather than just the first one.
-  const food = candidates.reduce((best, current) =>
-    usdaRelevanceScore(current, query) > usdaRelevanceScore(best, query) ? current : best
-  );
+  // USDA already ranks results by relevance — trust its ordering and take the first
+  // valid result rather than re-ranking with a naive string match.
+  const food = (data.foods ?? []).find(usdaHasMacros);
+  if (!food) return null;
 
   return { nutrients: usdaScale(food, 100), foodLabel: food.description };
 }
